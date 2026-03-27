@@ -4,5 +4,7 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+    <string>A aplicação precisa de aceder à galeria para anexar a foto do documento à tua carteira.</string>
 </dict>
 </plist>

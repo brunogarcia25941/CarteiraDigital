@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.kotlinxSerialization)
 }
 
 kotlin {
@@ -25,22 +26,12 @@ kotlin {
             isStatic = true
         }
     }
-    
-    js {
-        browser()
-        binaries.executable()
-    }
-    
-    @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
-        browser()
-        binaries.executable()
-    }
-    
+
     sourceSets {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
+            implementation("androidx.biometric:biometric:1.2.0-alpha05")
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -52,6 +43,9 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(compose.materialIconsExtended)
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.multiplatform.settings)
+            implementation(libs.peekaboo.image.picker)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
