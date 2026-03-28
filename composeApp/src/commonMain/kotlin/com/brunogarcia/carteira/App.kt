@@ -1,5 +1,6 @@
 package com.brunogarcia.carteira
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -60,11 +61,16 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.togetherWith
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 @Preview
 fun App() {
+
+    // A memória para apanharmos o culpado!
+    var erroGaleria by remember { mutableStateOf("") }
 
     // Instanciamos o Cofre
     val storageManager = remember { StorageManager() }
@@ -108,167 +114,198 @@ fun App() {
     )
 
     CarteiraTheme {
-        if (!autenticado) {
-            // ECRÃ DE BLOQUEIO
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Default.Lock,
-                        contentDescription = "Cofre Trancado",
-                        modifier = Modifier.size(80.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Carteira Trancada",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Spacer(modifier = Modifier.height(32.dp))
-                    Button(
-                        onClick = {
-                            // Chamar o sensor do telemóvel
-                            biometricAuthenticator.authenticate(
-                                onSuccess = { autenticado = true },
-                                onError = { erro ->
-                                    println("Erro na biometria: $erro")
-                                    // (Aqui poderíamos mostrar um aviso vermelho, mas para já só imprimimos o erro)
-                                }
-                            )
-                        }
-                    ) {
-                        Text("Desbloquear com Biometria")
-                    }
-                }
+
+        // Garante que o fundo por trás da animação é sempre escuro, matando o "flash branco".
+        androidx.compose.material3.Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            // Corre assim que o ecrã de bloqueio aparece
+            LaunchedEffect(Unit) {
+                biometricAuthenticator.authenticate(
+                    onSuccess = { autenticado = true },
+                    onError = { erro -> println("Erro na biometria: $erro") }
+                )
             }
-        } else {
-            // O Scaffold é o esqueleto do projeto
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = {
+
+            AnimatedContent(
+                targetState = autenticado,
+                label = "TransicaoEcra",
+                transitionSpec = {
+                    // Quando a app é desbloqueada: O ecrã entra a deslizar de baixo e a aparecer, e o cadeado desaparece
+                    (androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(500)) +
+                            androidx.compose.animation.slideInVertically(animationSpec = androidx.compose.animation.core.tween(500)) { height -> height / 2 }) togetherWith
+                            androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(500))
+                }
+            ) { estaAutenticado ->
+                if (!estaAutenticado) {
+
+
+                    // ECRÃ DE BLOQUEIO
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.background),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = androidx.compose.material.icons.Icons.Default.Lock,
+                                contentDescription = "Cofre Trancado",
+                                modifier = Modifier.size(80.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text = "Carteira Digital",
-                                fontWeight = FontWeight.Bold
+                                text = "Carteira Trancada",
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Spacer(modifier = Modifier.height(32.dp))
+                            Button(
+                                onClick = {
+                                    // Chamar o sensor do telemóvel
+                                    biometricAuthenticator.authenticate(
+                                        onSuccess = { autenticado = true },
+                                        onError = { erro ->
+                                            println("Erro na biometria: $erro")
+                                            // (Aqui poderíamos mostrar um aviso vermelho, mas para já só imprimimos o erro)
+                                        }
+                                    )
+                                }
+                            ) {
+                                Text("Desbloquear com Biometria")
+                            }
+                        }
+                    }
+                } else {
+                    // O Scaffold é o esqueleto do projeto
+                    Scaffold(
+                        topBar = {
+                            TopAppBar(
+                                title = {
+                                    Text(
+                                        text = "Carteira Digital",
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                },
+                                colors = TopAppBarDefaults.topAppBarColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
                             )
                         },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    )
-                },
-                floatingActionButton = {
-                    FloatingActionButton(
-                        onClick = { mostrarDialogo = true } // Abre o pop-up
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Adicionar Documento"
-                        )
-                    }
-                }
-            ) { innerPadding ->
+                        floatingActionButton = {
+                            FloatingActionButton(
+                                onClick = { mostrarDialogo = true } // Abre o pop-up
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Adicionar Documento"
+                                )
+                            }
+                        }
+                    ) { innerPadding ->
 
-                // Box é o ecrã central
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    // Se a lista estiver vazia, mostramos a mensagem
-                    if (listaDocumentos.isEmpty()) {
-                        Text(
-                            text = "A tua carteira está vazia.\nClica no '+' para adicionar um documento.",
-                            textAlign = TextAlign.Center,
-                            color = Color.Gray
-                        )
-                    } else {
-                        // Se tiver documentos, mostramos a lista
-                        LazyColumn(
+                        // Box é o ecrã central
+                        Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(16.dp)
+                                .padding(innerPadding),
+                            contentAlignment = Alignment.Center
                         ) {
-                            items(listaDocumentos) { doc ->
-                                Card(
+                            // Se a lista estiver vazia, mostramos a mensagem
+                            if (listaDocumentos.isEmpty()) {
+                                Text(
+                                    text = "A tua carteira está vazia.\nClica no '+' para adicionar um documento.",
+                                    textAlign = TextAlign.Center,
+                                    color = Color.Gray
+                                )
+                            } else {
+                                // Se tiver documentos, mostramos a lista
+                                LazyColumn(
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(bottom = 16.dp)
-                                        .clickable {
-                                            // Ao clicar no cartão, abrimos este documento em ecrã inteiro
-                                            documentoEmEcraInteiro = doc
-                                        }
+                                        .fillMaxSize()
+                                        .padding(16.dp)
                                 ) {
-                                    // Usamos uma Row para ter Foto na Esquerda, Texto na Direita
-                                    Row(
-                                        modifier = Modifier.padding(16.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-
-                                        // 1. A NOSSA MÁGICA DA IMAGEM AQUI!
-                                        if (doc.caminhoFoto != null) {
-                                            // O 'remember' faz com que a foto só seja convertida 1 vez para poupar bateria
-                                            val bitmap = remember(doc.caminhoFoto) {
-                                                val bytes = Base64.Default.decode(doc.caminhoFoto)
-                                                converterBytesParaBitmap(bytes)
-                                            }
-
-                                            if (bitmap != null) {
-                                                androidx.compose.foundation.Image(
-                                                    bitmap = bitmap,
-                                                    contentDescription = "Foto de ${doc.nome}",
-                                                    modifier = Modifier
-                                                        .size(60.dp) // O tamanho da miniatura
-                                                        .clip(RoundedCornerShape(8.dp)), // Cantos redondos na foto
-                                                    contentScale = ContentScale.Crop // Corta a foto para ficar um quadrado perfeito
-                                                )
-                                                Spacer(modifier = Modifier.width(16.dp)) // Espaço entre a foto e o texto
-                                            }
-                                        }
-
-                                        // TEXTOS
-                                        Column {
-                                            Text(
-                                                text = doc.nome,
-                                                fontWeight = FontWeight.Bold,
-                                                style = MaterialTheme.typography.titleLarge
-                                            )
-                                            if (doc.notas.isNotBlank()) {
-                                                Spacer(modifier = Modifier.height(4.dp))
-                                                Text(text = doc.notas, color = Color.Gray)
-                                            }
-                                        }
-
-                                        // CÓDIGO DO CAIXOTE DO LIXO
-                                        // Este Spacer empurra o botão do lixo totalmente para a direita
-                                        Spacer(modifier = Modifier.weight(1f))
-
-                                        IconButton(
-                                            onClick = {
-                                                // Em vez de apagar logo, dizemos à app qual queremos apagar
-                                                documentoAApagar = doc
-                                            }
+                                    items(listaDocumentos, key = { it.id }) { doc ->
+                                        Card(
+                                            modifier = Modifier
+                                                .animateItem()
+                                                .fillMaxWidth()
+                                                .padding(bottom = 16.dp)
+                                                .clickable {
+                                                    // Ao clicar no cartão, abrimos este documento em ecrã inteiro
+                                                    documentoEmEcraInteiro = doc
+                                                }
                                         ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Delete,
-                                                contentDescription = "Apagar Documento",
-                                                tint = Color.Red.copy(alpha = 0.7f) // Um vermelho suave
-                                            )
+                                            // Usamos uma Row para ter Foto na Esquerda, Texto na Direita
+                                            Row(
+                                                modifier = Modifier.padding(16.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+
+                                                // 1. A NOSSA MÁGICA DA IMAGEM AQUI!
+                                                if (doc.caminhoFoto != null) {
+                                                    // O 'remember' faz com que a foto só seja convertida 1 vez para poupar bateria
+                                                    val bitmap = remember(doc.caminhoFoto) {
+                                                        val bytes =
+                                                            Base64.Default.decode(doc.caminhoFoto)
+                                                        converterBytesParaBitmap(bytes)
+                                                    }
+
+                                                    if (bitmap != null) {
+                                                        androidx.compose.foundation.Image(
+                                                            bitmap = bitmap,
+                                                            contentDescription = "Foto de ${doc.nome}",
+                                                            modifier = Modifier
+                                                                .size(60.dp) // O tamanho da miniatura
+                                                                .clip(RoundedCornerShape(8.dp)), // Cantos redondos na foto
+                                                            contentScale = ContentScale.Crop // Corta a foto para ficar um quadrado perfeito
+                                                        )
+                                                        Spacer(modifier = Modifier.width(16.dp)) // Espaço entre a foto e o texto
+                                                    }
+                                                }
+
+                                                // TEXTOS
+                                                Column {
+                                                    Text(
+                                                        text = doc.nome,
+                                                        fontWeight = FontWeight.Bold,
+                                                        style = MaterialTheme.typography.titleLarge
+                                                    )
+                                                    if (doc.notas.isNotBlank()) {
+                                                        Spacer(modifier = Modifier.height(4.dp))
+                                                        Text(text = doc.notas, color = Color.Gray)
+                                                    }
+                                                }
+
+                                                // CÓDIGO DO CAIXOTE DO LIXO
+                                                // Este Spacer empurra o botão do lixo totalmente para a direita
+                                                Spacer(modifier = Modifier.weight(1f))
+
+                                                IconButton(
+                                                    onClick = {
+                                                        // Em vez de apagar logo, dizemos à app qual queremos apagar
+                                                        documentoAApagar = doc
+                                                    }
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Delete,
+                                                        contentDescription = "Apagar Documento",
+                                                        tint = Color.Red.copy(alpha = 0.7f) // Um vermelho suave
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
-                    }
-                }
-            } // fim scaffold
+                    } // fim scaffold
+                } // fim autenticado
+            } // fim crossfade
+
             // Se a variável for verdadeira, Pop-up no ecrã
             if (mostrarDialogo) {
                 AlertDialog(
@@ -298,9 +335,28 @@ fun App() {
                             )
                             Spacer(modifier = Modifier.height(16.dp))
 
+
+                            if (erroGaleria.isNotBlank()) {
+                                Text(
+                                    text = "Erro: $erroGaleria",
+                                    color = Color.Red,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+
                             // botao da camara
+
                             Button(
-                                onClick = { imagePicker.launch() }, // Abre a Galeria
+                                onClick = {
+                                    try {
+                                        erroGaleria = "" // Limpa erros antigos
+                                        imagePicker.launch() // Tenta abrir a Galeria
+                                    } catch (e: Exception) {
+                                        // APANHADO! Guardamos o erro para mostrar no ecrã
+                                        erroGaleria = e.toString()
+                                    }
+                                },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 // Se já tiver foto, mostra um Visto verde
@@ -411,7 +467,10 @@ fun App() {
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
                                 .padding(16.dp)
-                                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
+                                .background(
+                                    Color.Black.copy(alpha = 0.5f),
+                                    RoundedCornerShape(50)
+                                )
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
@@ -452,6 +511,6 @@ fun App() {
                     }
                 )
             }
-        }//fim autenticado
+        }
     }// fim carteira theme
 }

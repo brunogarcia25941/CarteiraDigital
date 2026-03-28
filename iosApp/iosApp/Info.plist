@@ -6,5 +6,7 @@
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
     <string>A aplicação precisa de aceder à galeria para anexar a foto do documento à tua carteira.</string>
+    <key>NSFaceIDUsageDescription</key>
+    <string>A aplicação precisa do Face ID para proteger os teus documentos.</string>
 </dict>
 </plist>
