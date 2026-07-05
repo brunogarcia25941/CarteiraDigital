@@ -33,6 +33,7 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation("androidx.biometric:biometric:1.2.0-alpha05")
             implementation("androidx.fragment:fragment-ktx:1.8.2")
+            implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.1")
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)

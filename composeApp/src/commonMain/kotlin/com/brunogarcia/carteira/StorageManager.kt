@@ -28,6 +28,12 @@ class StorageManager {
         }
     }
 
+    // Função para guardar toda a lista de documentos de uma vez
+    fun guardarListaDocumentos(novaLista: List<Documento>) {
+        val novoJson = Json.encodeToString(novaLista)
+        settings.putString(CHAVE_DOCUMENTOS, novoJson)
+    }
+
     // Função para guardar um novo documento
     fun guardarDocumento(novoDoc: Documento) {
         // 1. Lemos os que já existem
@@ -36,11 +42,8 @@ class StorageManager {
         // 2. Adicionamos o novo à lista
         listaAtual.add(novoDoc)
 
-        // 3. Transformamos a lista toda em JSON (texto)
-        val novoJson = Json.encodeToString(listaAtual)
-
-        // 4. Guardamos o texto atualizado no Settings
-        settings.putString(CHAVE_DOCUMENTOS, novoJson)
+        // 3. Guardamos a lista completa no Settings
+        guardarListaDocumentos(listaAtual)
     }
 
     // Função para REMOVER um documento
@@ -51,8 +54,21 @@ class StorageManager {
         // 2. Filtramos a lista (mantemos todos os que NÃO TÊM este ID)
         val novaLista = listaAtual.filter { it.id != idParaRemover }
 
-        // 3. Transformamos a nova lista em JSON e guardamos por cima da antiga
-        val novoJson = kotlinx.serialization.json.Json.encodeToString(novaLista)
-        settings.putString(CHAVE_DOCUMENTOS, novoJson)
+        // 3. Guardamos a nova lista por cima da antiga
+        guardarListaDocumentos(novaLista)
+    }
+
+    // A "chave" para o PIN de segurança
+    private val CHAVE_PIN = "pin_seguranca"
+
+    // Obtém o PIN guardado (retorna null se não existir)
+    fun obterPin(): String? {
+        val pin = settings.getString(CHAVE_PIN, "")
+        return if (pin.isEmpty()) null else pin
+    }
+
+    // Guarda o novo PIN de segurança
+    fun guardarPin(novoPin: String) {
+        settings.putString(CHAVE_PIN, novoPin)
     }
 }
